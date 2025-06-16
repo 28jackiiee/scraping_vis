@@ -1,0 +1,13 @@
+{
+  "original_query": "level angle",
+  "clean_query": "level_angle",
+  "authenticated": true,
+  "created_at": "2025-06-15 11:54:44",
+  "last_updated": "2025-06-15 11:55:08",
+  "total_videos_downloaded": 10,
+  "last_download_session": {
+    "requested_count": 10,
+    "new_downloads": 10,
+    "session_timestamp": "2025-06-15 11:55:08"
+  }
+}

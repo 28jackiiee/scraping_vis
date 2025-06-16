@@ -1,5 +1,5 @@
-// Sample data structure - replace this with your actual scraped data
-const scrapingResults = {
+// Sample data structure - this will be replaced by data from scraped-data.json
+let scrapingResults = {
     "nature landscapes": {
         query: "nature landscapes",
         timestamp: "2024-01-15 14:30:00",
@@ -31,119 +31,127 @@ const scrapingResults = {
                 resolution: "4K",
                 tags: ["forest", "wildlife", "documentary", "animals"],
                 url: "#"
-            },
-            {
-                id: "4",
-                title: "Desert Sand Dunes Aerial View",
-                thumbnail: "https://via.placeholder.com/300x180/FF9800/white?text=Desert",
-                duration: "1:00",
-                resolution: "4K",
-                tags: ["desert", "aerial", "sand", "landscape"],
-                url: "#"
-            }
-        ]
-    },
-    "business meeting": {
-        query: "business meeting",
-        timestamp: "2024-01-15 15:45:00",
-        totalResults: 890,
-        videos: [
-            {
-                id: "5",
-                title: "Modern Office Team Collaboration",
-                thumbnail: "https://via.placeholder.com/300x180/9C27B0/white?text=Office",
-                duration: "0:30",
-                resolution: "1080p",
-                tags: ["business", "team", "office", "collaboration"],
-                url: "#"
-            },
-            {
-                id: "6",
-                title: "Corporate Boardroom Discussion",
-                thumbnail: "https://via.placeholder.com/300x180/3F51B5/white?text=Boardroom",
-                duration: "1:45",
-                resolution: "4K",
-                tags: ["corporate", "meeting", "boardroom", "discussion"],
-                url: "#"
-            },
-            {
-                id: "7",
-                title: "Business Handshake Deal",
-                thumbnail: "https://via.placeholder.com/300x180/FF5722/white?text=Handshake",
-                duration: "0:15",
-                resolution: "1080p",
-                tags: ["handshake", "deal", "partnership", "agreement"],
-                url: "#"
-            }
-        ]
-    },
-    "technology innovation": {
-        query: "technology innovation",
-        timestamp: "2024-01-15 16:20:00",
-        totalResults: 2100,
-        videos: [
-            {
-                id: "8",
-                title: "AI Robot Assembly Line",
-                thumbnail: "https://via.placeholder.com/300x180/607D8B/white?text=AI+Robot",
-                duration: "1:30",
-                resolution: "4K",
-                tags: ["AI", "robot", "automation", "technology"],
-                url: "#"
-            },
-            {
-                id: "9",
-                title: "Data Center Server Visualization",
-                thumbnail: "https://via.placeholder.com/300x180/795548/white?text=Data+Center",
-                duration: "0:50",
-                resolution: "4K",
-                tags: ["data", "server", "cloud", "infrastructure"],
-                url: "#"
-            },
-            {
-                id: "10",
-                title: "Virtual Reality Experience",
-                thumbnail: "https://via.placeholder.com/300x180/E91E63/white?text=VR",
-                duration: "2:00",
-                resolution: "4K",
-                tags: ["VR", "virtual reality", "innovation", "tech"],
-                url: "#"
-            },
-            {
-                id: "11",
-                title: "Smartphone Development Process",
-                thumbnail: "https://via.placeholder.com/300x180/009688/white?text=Smartphone",
-                duration: "1:10",
-                resolution: "1080p",
-                tags: ["smartphone", "development", "mobile", "tech"],
-                url: "#"
-            },
-            {
-                id: "12",
-                title: "Coding Software Development",
-                thumbnail: "https://via.placeholder.com/300x180/FFC107/white?text=Coding",
-                duration: "0:40",
-                resolution: "1080p",
-                tags: ["coding", "software", "programming", "development"],
-                url: "#"
             }
         ]
     }
 };
 
 let currentQuery = null;
+let lastUpdateCheck = 0;
+let autoUpdateInterval = null;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    loadQueries();
+    loadInitialData();
+    startAutoUpdate();
 });
+
+// Load initial data from scraped-data.json or fall back to sample data
+async function loadInitialData() {
+    try {
+        await loadScrapingData('scraped-data.json');
+    } catch (error) {
+        console.log('No scraped-data.json found, using sample data');
+        loadQueries();
+    }
+}
+
+// Start automatic update checking
+function startAutoUpdate() {
+    // Check for updates every 5 seconds
+    autoUpdateInterval = setInterval(checkForUpdates, 5000);
+    console.log('Auto-update started (checking every 5 seconds)');
+}
+
+// Stop automatic updates
+function stopAutoUpdate() {
+    if (autoUpdateInterval) {
+        clearInterval(autoUpdateInterval);
+        autoUpdateInterval = null;
+        console.log('Auto-update stopped');
+    }
+}
+
+// Check for updates to the JSON file
+async function checkForUpdates() {
+    try {
+        const response = await fetch('scraped-data.json?t=' + Date.now());
+        if (response.ok) {
+            const lastModified = response.headers.get('Last-Modified');
+            const currentTime = Date.now();
+            
+            // Only update if file has been modified recently (within last 10 seconds)
+            if (lastModified && currentTime - lastUpdateCheck > 1000) {
+                const data = await response.json();
+                if (JSON.stringify(data) !== JSON.stringify(scrapingResults)) {
+                    console.log('Data updated, refreshing visualization');
+                    Object.assign(scrapingResults, data);
+                    loadQueries();
+                    
+                    // Show update notification
+                    showUpdateNotification();
+                }
+                lastUpdateCheck = currentTime;
+            }
+        }
+    } catch (error) {
+        // Silently fail - file might not exist yet
+    }
+}
+
+// Show update notification
+function showUpdateNotification() {
+    // Create notification element if it doesn't exist
+    let notification = document.getElementById('updateNotification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'updateNotification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        notification.textContent = '📹 Videos updated!';
+        document.body.appendChild(notification);
+    }
+    
+    // Show notification
+    notification.style.opacity = '1';
+    
+    // Hide after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+    }, 3000);
+}
 
 // Load all search queries into the sidebar
 function loadQueries() {
     const queryList = document.getElementById('queryList');
     queryList.innerHTML = '';
     
-    Object.keys(scrapingResults).forEach(queryKey => {
+    const queryKeys = Object.keys(scrapingResults);
+    
+    if (queryKeys.length === 0) {
+        queryList.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #6c757d;">
+                <div style="font-size: 2em; margin-bottom: 10px;">📁</div>
+                <p>No query folders found</p>
+                <small>Add video files to Downloads/query_name/</small>
+            </div>
+        `;
+        return;
+    }
+    
+    queryKeys.forEach(queryKey => {
         const data = scrapingResults[queryKey];
         const queryItem = document.createElement('div');
         queryItem.className = 'query-item';
@@ -167,7 +175,11 @@ function selectQuery(queryKey) {
     document.querySelectorAll('.query-item').forEach(item => {
         item.classList.remove('active');
     });
-    document.querySelector(`[data-query="${queryKey}"]`).classList.add('active');
+    
+    const queryElement = document.querySelector(`[data-query="${queryKey}"]`);
+    if (queryElement) {
+        queryElement.classList.add('active');
+    }
     
     currentQuery = queryKey;
     const data = scrapingResults[queryKey];
@@ -219,27 +231,123 @@ function displayVideos(videos) {
         const videoCard = document.createElement('div');
         videoCard.className = 'video-card';
         
+        // Determine thumbnail source
+        const thumbnailSrc = video.thumbnail || generateVideoThumbnail(video);
+        
+        // Create video preview modal
+        const isLocalFile = video.localPath || video.url.startsWith('file://');
+        
         videoCard.innerHTML = `
-            <div class="video-thumbnail">
-                <img src="${video.thumbnail}" alt="${video.title}" onerror="this.style.display='none'; this.parentElement.innerHTML='📹';">
+            <div class="video-thumbnail" data-video-id="${video.id}">
+                <img src="${thumbnailSrc}" alt="${video.title}" onerror="this.src='${generateVideoThumbnail(video)}';">
+                <div class="play-button">▶</div>
+                <div class="video-duration-overlay">${video.duration}</div>
             </div>
             <div class="video-info">
                 <div class="video-title">${video.title}</div>
                 <div class="video-meta">
-                    <span class="video-duration">${video.duration}</span>
                     <span class="video-resolution">${video.resolution}</span>
+                    ${video.fileSize ? `<span class="video-filesize">${video.fileSize}</span>` : ''}
                 </div>
                 <div class="video-tags">
                     ${video.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                 </div>
+                ${video.filename ? `<div class="video-filename" title="${video.filename}">${video.filename}</div>` : ''}
             </div>
         `;
+        
+        // Add click handler for video preview
+        const thumbnail = videoCard.querySelector('.video-thumbnail');
+        thumbnail.addEventListener('click', () => {
+            showVideoModal(video);
+        });
         
         resultsGrid.appendChild(videoCard);
     });
     
     resultsContainer.innerHTML = '';
     resultsContainer.appendChild(resultsGrid);
+}
+
+// Show video in modal
+function showVideoModal(video) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('videoModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'videoModal';
+        modal.className = 'video-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle"></h3>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <video id="modalVideo" controls style="width: 100%; max-height: 70vh;">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-details" id="modalDetails"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add close handlers
+        const closeBtn = modal.querySelector('.close');
+        closeBtn.addEventListener('click', closeVideoModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeVideoModal();
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeVideoModal();
+        });
+    }
+    
+    // Update modal content
+    document.getElementById('modalTitle').textContent = video.title;
+    
+    const videoElement = document.getElementById('modalVideo');
+    videoElement.src = video.url;
+    
+    const details = `
+        <div class="detail-row"><strong>Duration:</strong> ${video.duration}</div>
+        <div class="detail-row"><strong>Resolution:</strong> ${video.resolution}</div>
+        ${video.fileSize ? `<div class="detail-row"><strong>File Size:</strong> ${video.fileSize}</div>` : ''}
+        <div class="detail-row"><strong>Tags:</strong> ${video.tags.join(', ')}</div>
+        ${video.filename ? `<div class="detail-row"><strong>Filename:</strong> ${video.filename}</div>` : ''}
+    `;
+    document.getElementById('modalDetails').innerHTML = details;
+    
+    // Show modal
+    modal.style.display = 'block';
+    
+    // Auto-play if possible
+    videoElement.play().catch(() => {
+        // Auto-play failed, that's okay
+    });
+}
+
+// Close video modal
+function closeVideoModal() {
+    const modal = document.getElementById('videoModal');
+    if (modal) {
+        modal.style.display = 'none';
+        const video = document.getElementById('modalVideo');
+        video.pause();
+        video.src = '';
+    }
+}
+
+// Generate a placeholder thumbnail for videos
+function generateVideoThumbnail(video) {
+    const colors = ['4CAF50', '2196F3', '9C27B0', '3F51B5', 'FF5722', '607D8B', '795548', 'E91E63', '009688', 'FFC107'];
+    const colorIndex = Math.abs(video.id.charCodeAt(0)) % colors.length;
+    const color = colors[colorIndex];
+    const title = encodeURIComponent(video.title.substring(0, 15));
+    return `https://via.placeholder.com/300x180/${color}/white?text=${title}`;
 }
 
 // Calculate average duration from videos
@@ -275,23 +383,185 @@ function formatDate(dateString) {
     });
 }
 
-// Function to load external data (for when you integrate with your scraper)
-function loadScrapingData(dataUrl) {
-    fetch(dataUrl)
-        .then(response => response.json())
-        .then(data => {
-            // Replace the sample data with loaded data
-            Object.assign(scrapingResults, data);
-            loadQueries();
-        })
-        .catch(error => {
-            console.error('Error loading scraping data:', error);
-        });
+// Function to load external data
+async function loadScrapingData(dataUrl) {
+    try {
+        const response = await fetch(dataUrl + '?t=' + Date.now());
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Replace the sample data with loaded data
+        scrapingResults = data;
+        loadQueries();
+        
+        console.log('Loaded data from', dataUrl);
+        return data;
+    } catch (error) {
+        console.error('Error loading scraping data:', error);
+        throw error;
+    }
 }
+
+// Add styles for video modal and improved cards
+const additionalStyles = `
+    .video-thumbnail {
+        position: relative;
+        cursor: pointer;
+        overflow: hidden;
+    }
+    
+    .video-thumbnail:hover .play-button {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    
+    .play-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 60px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+        pointer-events: none;
+    }
+    
+    .video-duration-overlay {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: 500;
+    }
+    
+    .video-filesize {
+        font-size: 0.8em;
+        color: #6c757d;
+        margin-left: 10px;
+    }
+    
+    .video-filename {
+        font-size: 0.7em;
+        color: #999;
+        margin-top: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .video-card:hover .video-filename {
+        color: #666;
+    }
+    
+    .video-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .modal-content {
+        position: relative;
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.3em;
+    }
+    
+    .close {
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    }
+    
+    .close:hover {
+        opacity: 1;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .video-details {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .detail-row {
+        margin-bottom: 8px;
+        font-size: 0.9em;
+    }
+    
+    .detail-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @media (max-width: 768px) {
+        .modal-content {
+            width: 95%;
+            margin: 10% auto;
+        }
+    }
+`;
+
+// Add additional styles to the page
+const styleSheet = document.createElement('style');
+styleSheet.textContent = additionalStyles;
+document.head.appendChild(styleSheet);
 
 // Export functions for potential external use
 window.AdobeStockViz = {
     loadScrapingData,
     selectQuery,
-    scrapingResults
+    scrapingResults,
+    startAutoUpdate,
+    stopAutoUpdate,
+    checkForUpdates
 }; 
