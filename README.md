@@ -1,239 +1,387 @@
-# Adobe Stock Scraping Visualization Tool
+# Adobe Stock Scraping Visualization
 
-A simple, clean web interface for visualizing scraped Adobe Stock video results with a split-pane layout showing search queries and their corresponding results. **Now with automatic file monitoring!**
+A comprehensive web application for organizing, visualizing, and analyzing scraped video content from Adobe Stock. This tool provides an intuitive interface to browse videos, generate thumbnails, rank content, and export labeled datasets for machine learning applications.
 
-## 🚀 New Feature: Automatic File Monitoring
+## 🚀 Features
 
-The visualization tool now automatically updates when you add video files to your Downloads folder!
+### Video Management System
+- **Automatic Video Discovery**: Monitors Downloads folder for new video files using real-time file system watching
+- **Thumbnail Generation**: Automatically creates video thumbnails using FFmpeg for quick preview
+- **Hierarchical Organization**: Category → Subconcept → Query folder structure for systematic content organization  
+- **Multiple Video Formats**: Supports .mp4, .avi, .mov, .mkv, .webm, .flv, .wmv files
+- **Real-time Updates**: Automatically detects new videos and updates display without manual refresh
 
-### Quick Start with Auto-Monitoring
+### Interactive Web Interface
+- **Modern Responsive UI**: Clean, intuitive interface for browsing large video collections
+- **Video Modal Player**: Full-screen video viewing with navigation controls and metadata display
+- **Search & Filter System**: Browse videos by category, subconcept, and query with instant filtering
+- **Star Rating System**: Mark favorite queries and individual videos for quick access
+- **Grid and List Views**: Switch between different viewing modes for optimal browsing experience
 
-1. **Start the File Monitor**:
-   ```bash
-   # Option 1: Use the startup script (recommended)
-   python start_monitor.py
-   
-   # Option 2: Run directly  
-   python file_monitor.py
-   
-   # Option 3: On Windows, double-click
-   start_monitor.bat
-   ```
+### Ranking & Labeling Tools
+- **Video Ranking System**: Score and rank videos for quality assessment and content curation
+- **Binary Labeling System**: Mark videos as relevant/irrelevant for training dataset preparation
+- **Data Export Functionality**: Export labeled videos to JSON format for machine learning workflows
+- **Batch Operations**: Clear labels, export selections, and manage datasets efficiently
+- **Training Data Preparation**: Streamlined workflow for creating labeled datasets
 
-2. **Open the Web Interface**:
-   - Open `index.html` in your web browser
-   - The interface will automatically check for updates every 5 seconds
+### Real-time File Monitoring
+- **File System Watcher**: Automatically detects new videos added to folder structure
+- **Live JSON Generation**: Updates visualization data in real-time as content changes  
+- **Manual Refresh Options**: On-demand updates via web interface when needed
+- **Cross-platform Monitoring**: Works on Windows, macOS, and Linux systems
 
-3. **Add Video Files**:
-   - Create folders in your Downloads directory: `Downloads/query_name/`
-   - Add video files to these folders
-   - Watch the visualization update automatically! 📹
+## 🛠️ Setup and Installation
 
-### Expected Folder Structure
+### 1. Prerequisites
 
-```
-Downloads/
-├── nature landscapes/
-│   ├── mountain_sunset_4k.mp4
-│   ├── ocean_waves_1080p.mp4
-│   └── forest_timelapse.mov
-├── business meeting/
-│   ├── office_collaboration.mp4
-│   └── boardroom_discussion.avi
-└── technology innovation/
-    ├── ai_robot_assembly.mp4
-    ├── data_center_servers.mp4
-    └── vr_experience.mkv
-```
+- **Python 3.7+** with pip
+- **Node.js** (optional, for development)
+- **FFmpeg** (recommended for video thumbnails)
 
-## Features
+### 2. Install FFmpeg (Recommended)
 
-- **Split-pane Interface**: Search queries on the left, results on the right
-- **Interactive Query Selection**: Click any query to view its results
-- **Video Grid Display**: Clean card layout for video results
-- **Statistics Dashboard**: Shows total videos, average duration, and unique tags
-- **Responsive Design**: Works on desktop and mobile devices
-- **Modern UI**: Beautiful gradient design with smooth animations
-- **🆕 Automatic Updates**: Real-time monitoring of Downloads folder
-- **🆕 Local File Support**: Click video cards to open local files
-- **🆕 Smart Metadata**: Extracts duration, resolution, and tags from filenames
-
-## Requirements
-
-- Python 3.6 or higher
-- `watchdog` package (automatically installed)
-
-## Installation
-
-1. **Clone or download** this project
-2. **Run the startup script**:
-   ```bash
-   python start_monitor.py
-   ```
-   This will automatically install dependencies and start monitoring.
-
-## How It Works
-
-1. **File Monitor**: Python script watches your Downloads folder for changes
-2. **Data Generation**: Automatically creates `scraped-data.json` from your file structure
-3. **Web Interface**: Periodically checks for updates and refreshes the display
-4. **Smart Parsing**: Extracts video information from filenames and folder structure
-
-## File Naming for Better Results
-
-For optimal metadata extraction, name your files like:
-- `mountain_landscape_4k_2m30s.mp4` → Duration: 2:30, Resolution: 4K
-- `office_meeting_1080p.avi` → Resolution: 1080p
-- `ai_robot_30s.mov` → Duration: 0:30
-
-Supported video formats: `.mp4`, `.avi`, `.mov`, `.mkv`, `.webm`, `.flv`, `.wmv`
-
-## Manual Integration (Alternative)
-
-If you prefer not to use automatic monitoring:
-
-### Option 1: Replace Sample Data
-
-Edit the `scrapingResults` object in `app.js` to use your actual scraped data.
-
-### Option 2: Load External JSON
-
-Use the `loadScrapingData()` function to load data from an external JSON file:
-
-```javascript
-// Load data from your scraper's output file
-window.AdobeStockViz.loadScrapingData('path/to/your/scraped-data.json');
+**macOS (Homebrew):**
+```bash
+brew install ffmpeg
 ```
 
-### Expected Data Structure
+**Windows:**
+```bash
+# Download from https://ffmpeg.org/download.html
+# Add to PATH environment variable
+```
 
-Your scraped data should follow this structure:
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt install ffmpeg
+```
 
+### 3. Clone or Download the Project
+```bash
+cd scraping_vis
+```
+
+### 4. Install Python Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+Or install manually:
+```bash
+pip install watchdog
+```
+
+### 5. Organize Your Video Structure (Optional)
+Create folder structure in `downloads/` directory following this pattern:
+```
+downloads/
+├── Category/
+│   ├── Subconcept/
+│   │   └── query_folder/
+│   │       ├── video1.mp4
+│   │       └── video2.mp4
+└── Another_Category/
+    └── Another_Subconcept/
+        └── another_query/
+```
+
+## 📚 Usage
+
+### 1. Quick Start (Recommended)
+
+Run the all-in-one startup script:
+```bash
+python start_all.py
+```
+
+This will:
+- Install any missing dependencies automatically
+- Start the file monitor (watches for new videos)  
+- Start the web server (serves the visualization)
+- Open your browser to the application at `http://localhost:8000`
+
+### 2. Manual Component Startup
+
+Start components individually for more control:
+
+**Start file monitor** (optional, for auto-updates):
+```bash
+python file_monitor.py
+```
+
+**Start web server**:
+```bash
+python serve.py
+```
+
+**Open browser**: Navigate to `http://localhost:8000`
+
+### 3. Adding Videos to the System
+
+**Create folder structure** in `downloads/`:
+```bash
+downloads/
+├── Nature/
+│   ├── Landscapes/
+│   │   ├── mountain_scenery/
+│   │   │   ├── video1.mp4
+│   │   │   └── video2.mp4
+│   │   └── ocean_views/
+│   │       └── ocean_video.mp4
+│   └── Wildlife/
+│       └── animals/
+│           └── wildlife_footage.mp4
+└── Business/
+    └── Meetings/
+        └── office_discussion/
+            └── meeting_video.mp4
+```
+
+**Add video files** to query folders and **refresh** the web interface (videos appear automatically if file monitor is running).
+
+### 4. Web Interface Navigation
+
+**Sidebar Navigation**: Browse categories, subconcepts, and queries in hierarchical structure
+
+**Main Content Area**: 
+- **Videos Mode**: Grid view of all videos in selected query
+- **Rankings Mode**: View ranked videos with scores (if ranking data exists)  
+- **Labeling Mode**: Label videos as relevant/irrelevant for training datasets
+
+**Video Modal Controls**: 
+- Click any video for full-screen viewing
+- Use arrow keys or navigation buttons to browse videos
+- View metadata, duration, and file information
+
+**Interactive Controls**:
+- **Star System**: Click stars to favorite queries and videos
+- **Update Button**: Manually refresh data from file system
+- **Export Button**: Export labeled videos to JSON format  
+- **Clear Labels**: Reset all labels for current query
+
+### 5. Video Labeling and Export
+
+**Label Videos for Training**:
+```bash
+# Access via web interface labeling mode
+# Mark videos as relevant (✓) or irrelevant (✗)
+# Labels are saved automatically
+```
+
+**Export Labeled Data**:
+```bash
+# Use Export button in web interface
+# Generates JSON file with labeled video data
+# Includes metadata and file paths for ML workflows
+```
+
+## 📄 JSON Output Format
+
+### Scraped Data Structure
 ```json
 {
-  "search_query": {
-    "query": "search terms used",
-    "timestamp": "2024-01-15 14:30:00",
-    "totalResults": 1250,
-    "videos": [
-      {
-        "id": "unique_video_id",
-        "title": "Video Title",
-        "thumbnail": "thumbnail_url",
-        "duration": "1:30",
-        "resolution": "4K",
-        "tags": ["tag1", "tag2"],
-        "url": "adobe_stock_url"
-      }
-    ]
+  "Category Name": {
+    "Subconcept Name": {
+      "queries": [
+        {
+          "query": "Search Term",
+          "folder": "folder_name", 
+          "timestamp": "2024-01-15 14:30:00",
+          "totalResults": 5,
+          "videos": [...]
+        }
+      ]
+    }
   }
 }
 ```
 
-## Required Fields
-
-- `query`: The search terms used
-- `timestamp`: When the search was performed
-- `videos`: Array of video objects
-  - `id`: Unique identifier
-  - `title`: Video title
-  - `duration`: Format "M:SS" (e.g., "1:30")
-  - `resolution`: Video quality (e.g., "4K", "1080p")
-  - `tags`: Array of tags/keywords
-
-## Optional Fields
-
-- `thumbnail`: Video thumbnail URL
-- `url`: Link to Adobe Stock page
-- `description`: Video description
-- `contributor`: Video creator
-- `price`: Pricing information
-- `filename`: Original filename
-- `fileSize`: File size in human-readable format
-
-## Customization
-
-### Styling
-
-Modify the CSS in `index.html` to customize:
-- Colors and gradients
-- Card layouts
-- Typography
-- Spacing and animations
-
-### Functionality
-
-Extend `app.js` to add:
-- Search functionality
-- Filtering by tags or duration
-- Sorting options
-- Export capabilities
-
-### Monitor Configuration
-
-Edit `file_monitor.py` to customize:
-- Monitoring path (default: `~/Downloads`)
-- Output filename (default: `scraped-data.json`)
-- Video file extensions
-- Tag generation rules
-
-## Browser Compatibility
-
-- Chrome (recommended)
-- Firefox
-- Safari
-- Edge
-
-## File Structure
-
-```
-├── index.html              # Main HTML file with styles
-├── app.js                 # JavaScript application logic
-├── file_monitor.py        # Python file monitoring script
-├── start_monitor.py       # Startup script with dependency management
-├── start_monitor.bat      # Windows batch file
-├── requirements.txt       # Python dependencies
-├── sample-data.json       # Example data structure
-└── README.md              # This file
+### Video Object Format
+```json
+{
+  "id": "unique_video_id",
+  "title": "Video Title",
+  "thumbnail": "thumbnails/folder/video_thumb.jpg",
+  "duration": "1:23",
+  "resolution": "1920x1080", 
+  "fileSize": "15.2 MB",
+  "tags": ["tag1", "tag2"],
+  "url": "downloads/folder/video.mp4",
+  "label": "relevant|irrelevant|unlabeled",
+  "ranking": 8.5
+}
 ```
 
-## Troubleshooting
+### Exported Labels Format
+```json
+{
+  "queryFolder": "query_name",
+  "data": {
+    "exported_videos": [
+      {
+        "video_id": "unique_id",
+        "file_path": "downloads/category/subconcept/query/video.mp4",
+        "label": "relevant",
+        "ranking": 9.2,
+        "metadata": {...}
+      }
+    ],
+    "timestamp": "2024-01-15T10:30:00",
+    "total_labeled": 25,
+    "relevant_count": 18,
+    "irrelevant_count": 7
+  }
+}
+```
 
-### File Monitor Issues
+## 🔄 Real-time File Monitoring
 
-1. **Permission Errors**: Make sure Python has permission to read your Downloads folder
-2. **Module Not Found**: Run `pip install watchdog` manually
-3. **No Updates**: Check that files are being added to `Downloads/query_name/` structure
+The file monitoring system provides automatic updates when new videos are added:
 
-### Web Interface Issues
+**File System Watcher**: Uses Python's `watchdog` library to monitor the downloads directory for changes
+**Automatic JSON Updates**: Regenerates metadata JSON when new videos are detected  
+**Live Web Interface**: Updates visualization in real-time without manual refresh
+**Cross-platform Support**: Works on Windows, macOS, and Linux file systems
+**Performance Optimized**: Efficient monitoring that doesn't impact system performance
 
-1. **CORS Errors**: Serve files through a local web server:
-   ```bash
-   python -m http.server 8000
-   # Then open http://localhost:8000
-   ```
-2. **No Auto-Updates**: Check browser console for JavaScript errors
+## 🎯 API Endpoints
 
-### File Detection Issues
+### GET `/api/ranking-results`
+Returns ranking data for all queries:
+```bash
+curl http://localhost:8000/api/ranking-results
+```
 
-1. **Files Not Detected**: Ensure video files have supported extensions
-2. **Wrong Metadata**: Check filename patterns for duration/resolution extraction
-3. **Missing Tags**: Folder and filename words become tags automatically
+### POST `/api/export-labels`  
+Export labeled video data:
+```bash
+curl -X POST http://localhost:8000/api/export-labels \
+  -H "Content-Type: application/json" \
+  -d '{"queryFolder": "query_name"}'
+```
 
-## Tips for Best Results
+### GET `/api/update`
+Manually trigger data refresh:
+```bash
+curl http://localhost:8000/api/update
+```
 
-1. **Consistent Naming**: Use descriptive folder names for your search queries
-2. **File Organization**: Keep related videos in the same query folder
-3. **Filename Conventions**: Include duration and resolution in filenames
-4. **Regular Cleanup**: Remove old or unwanted video files to keep the interface clean
-5. **Performance**: For large collections, consider organizing into subfolders
+## 🛡️ Enhanced Video Management
 
-## Example Workflow
+The visualization system incorporates robust video management capabilities:
 
-1. **Start Monitoring**: Run `python start_monitor.py`
-2. **Open Web Interface**: Open `index.html` in browser
-3. **Download Videos**: Save to `Downloads/my-search-query/video.mp4`
-4. **Watch Updates**: Interface automatically shows new videos
-5. **Browse Results**: Click queries to explore your video collection
+**Automatic Thumbnail Generation**: Creates thumbnails for all video formats using FFmpeg with fallback options
+**Duplicate Video Detection**: Identifies and handles duplicate videos across different queries and folders
+**Metadata Preservation**: Maintains original video metadata while adding visualization-specific data
+**Hierarchical Organization**: Supports complex folder structures for systematic content organization
+**File Type Validation**: Ensures only supported video formats are processed and displayed
 
-Enjoy your automatic Adobe Stock visualization system! 🎬✨ 
+## 🏷️ Advanced Labeling System
+
+The labeling functionality is designed for machine learning dataset preparation:
+
+**Binary Classification**: Simple relevant/irrelevant labeling for binary classification tasks
+**Ranking Integration**: Combines star ratings with binary labels for nuanced dataset creation  
+**Batch Processing**: Label multiple videos quickly with keyboard shortcuts and bulk operations
+**Export Flexibility**: Multiple export formats for different ML frameworks and use cases
+**Label Persistence**: Labels are preserved across sessions and automatically saved
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+**No thumbnails generated:**
+```bash
+# Check FFmpeg installation
+ffmpeg -version
+
+# Install FFmpeg (macOS)
+brew install ffmpeg
+
+# Install FFmpeg (Linux)  
+sudo apt install ffmpeg
+```
+
+**Videos not appearing:**
+```bash
+# Check folder structure in downloads/
+ls -la downloads/
+
+# Ensure supported video extensions
+# Click "Update" button in web interface
+```
+
+**Port already in use:**
+```bash
+# Check what's using port 8000
+lsof -ti:8000
+
+# Kill process using port
+lsof -ti:8000 | xargs kill
+
+# Or change port in serve.py
+python serve.py --port 8001
+```
+
+**File monitor not working:**
+```bash
+# Install watchdog
+pip install watchdog
+
+# Check file permissions
+ls -la downloads/
+
+# Run with verbose logging
+python file_monitor.py --verbose
+```
+
+### Debug Mode
+
+Enable debug output for troubleshooting:
+```bash
+# Start with verbose logging
+python file_monitor.py --verbose
+python serve.py --debug
+```
+
+## 💻 Development
+
+### Frontend Architecture
+- **Main Logic**: `app.js` - Vanilla JavaScript application
+- **Styling**: Embedded CSS in `index.html` with modern responsive design
+- **No Framework Dependencies**: Pure JavaScript for fast loading and minimal overhead
+
+### Backend Architecture  
+- **File Monitor**: `file_monitor.py` - File system watching and JSON generation
+- **Web Server**: `serve.py` - Python HTTP server with CORS support and API endpoints
+- **Orchestration**: `start_all.py` - Single-command startup script
+
+### Dependencies
+- **Python**: `watchdog` for file system monitoring
+- **System**: FFmpeg for video processing and thumbnail generation
+- **Optional**: Node.js for development tools
+
+## 📦 Project Structure
+
+```
+scraping_vis/
+├── data/                    # Exported labeled video datasets
+├── downloads/               # Video files organized by category/subconcept/query
+│   ├── Camera_Focus/
+│   │   ├── Deep_Focus/
+│   │   │   └── everything_in_focus/
+│   │   └── Shallow_Focus/
+│   │       └── shallow_focus/
+│   └── Camera_Angle/
+│       └── Level_Angle/
+│           └── level_angle/
+├── thumbnails/              # Auto-generated video thumbnails
+├── app.js                   # Frontend JavaScript application
+├── index.html               # Main web interface
+├── serve.py                 # Python web server
+├── file_monitor.py          # File system monitoring script
+├── start_all.py             # All-in-one startup script
+├── requirements.txt         # Python dependencies
+└── README.md                # This file
+```

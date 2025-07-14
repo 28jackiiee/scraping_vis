@@ -22,6 +22,32 @@ class VideoFileHandler(FileSystemEventHandler):
         self.thumbnails_dir = Path("thumbnails")
         self.thumbnails_dir.mkdir(exist_ok=True)
         
+    def get_category_and_subconcept(self, query_folder_name):
+        """
+        Dynamically determine category and subconcept based on folder structure.
+        
+        Structure:
+        downloads/
+        ├── Category/
+        │   ├── Subconcept/
+        │   │   └── query_folder/
+        │   └── ...
+        └── query_folder/  (top-level, uncategorized)
+        """
+        # Check if this query exists in a nested structure
+        for category_folder in self.downloads_path.iterdir():
+            if category_folder.is_dir() and not category_folder.name.startswith('.'):
+                # Check if this is a category folder (contains subconcept folders)
+                for subconcept_folder in category_folder.iterdir():
+                    if subconcept_folder.is_dir() and not subconcept_folder.name.startswith('.'):
+                        # Check if our query folder exists in this subconcept
+                        query_path = subconcept_folder / query_folder_name
+                        if query_path.exists() and query_path.is_dir():
+                            return category_folder.name, subconcept_folder.name
+        
+        # If not found in nested structure, treat as uncategorized
+        return "Uncategorized", query_folder_name.replace('_', ' ').replace('-', ' ').title()
+        
     def on_any_event(self, event):
         # Debounce: only update once per second
         current_time = time.time()
@@ -43,26 +69,75 @@ class VideoFileHandler(FileSystemEventHandler):
             print(f"Error generating JSON: {e}")
 
     def scan_downloads_folder(self):
-        """Scan Downloads folder and create data structure"""
+        """Scan Downloads folder and create hierarchical data structure"""
         result = {}
         
         if not self.downloads_path.exists():
             print(f"Downloads path does not exist: {self.downloads_path}")
             return result
-            
-        # Look for query folders in Downloads
-        for query_folder in self.downloads_path.iterdir():
-            if query_folder.is_dir() and not query_folder.name.startswith('.'):
-                query_name = query_folder.name
-                videos = self.scan_query_folder(query_folder)
+        
+        # Collect all query folders and their paths
+        query_folders = []
+        
+        # First, scan for nested structure (Category/Subconcept/Query)
+        for category_folder in self.downloads_path.iterdir():
+            if category_folder.is_dir() and not category_folder.name.startswith('.'):
+                # Check if this folder contains subconcept folders
+                has_subconcepts = False
+                for subconcept_folder in category_folder.iterdir():
+                    if subconcept_folder.is_dir() and not subconcept_folder.name.startswith('.'):
+                        # Check if this subconcept contains query folders
+                        for query_folder in subconcept_folder.iterdir():
+                            if query_folder.is_dir() and not query_folder.name.startswith('.'):
+                                videos = self.scan_query_folder(query_folder)
+                                if videos:  # Only add if we found videos
+                                    query_folders.append({
+                                        'path': query_folder,
+                                        'name': query_folder.name,
+                                        'category': category_folder.name,
+                                        'subconcept': subconcept_folder.name,
+                                        'videos': videos
+                                    })
+                                    has_subconcepts = True
                 
-                if videos:  # Only add if we found videos
-                    result[query_name] = {
-                        "query": query_name,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "totalResults": len(videos),
-                        "videos": videos
-                    }
+                # If no subconcepts found, treat this category folder as a direct query folder
+                if not has_subconcepts:
+                    videos = self.scan_query_folder(category_folder)
+                    if videos:  # Only add if we found videos
+                        query_folders.append({
+                            'path': category_folder,
+                            'name': category_folder.name,
+                            'category': "Uncategorized",
+                            'subconcept': category_folder.name.replace('_', ' ').replace('-', ' ').title(),
+                            'videos': videos
+                        })
+        
+        # Build the result structure
+        for query_data in query_folders:
+            category = query_data['category']
+            subconcept = query_data['subconcept']
+            
+            # Initialize category if not exists
+            if category not in result:
+                result[category] = {}
+            
+            # Initialize subconcept if not exists
+            if subconcept not in result[category]:
+                result[category][subconcept] = {
+                    "queries": []
+                }
+            
+            # Add query to subconcept
+            formatted_query = query_data['name'].replace('_', ' ').replace('-', ' ').title()
+            query_info = {
+                "query": formatted_query,
+                "folder": query_data['name'],
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "totalResults": len(query_data['videos']),
+                "videos": query_data['videos']
+            }
+            
+            result[category][subconcept]["queries"].append(query_info)
                     
         return result
 
@@ -162,13 +237,58 @@ class VideoFileHandler(FileSystemEventHandler):
         
         return {'duration': '0:00', 'resolution': 'Unknown'}
 
+    def load_query_metadata(self, query_folder):
+        """Load query metadata from query_metadata.json if it exists"""
+        metadata_path = query_folder / 'query_metadata.json'
+        if metadata_path.exists():
+            try:
+                with open(metadata_path, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                    return metadata.get('video_file_mappings', {})
+            except (json.JSONDecodeError, FileNotFoundError, UnicodeDecodeError) as e:
+                print(f"Error loading metadata from {metadata_path}: {e}")
+        return {}
+
+    def get_adobe_stock_id(self, file_path, metadata_mappings):
+        """Get Adobe Stock ID from metadata mappings based on filename"""
+        filename = file_path.name
+        filename_stem = file_path.stem
+        
+        # Try exact filename match first
+        for adobe_id, info in metadata_mappings.items():
+            if info.get('filename') == filename:
+                return adobe_id
+        
+        # Try filename without extension match
+        for adobe_id, info in metadata_mappings.items():
+            mapping_filename = info.get('filename', '')
+            mapping_stem = mapping_filename.replace('.mp4', '').replace('.mov', '').replace('.avi', '')
+            if mapping_stem == filename_stem:
+                return adobe_id
+        
+        # Try partial filename match (more flexible)
+        for adobe_id, info in metadata_mappings.items():
+            mapping_filename = info.get('filename', '').lower()
+            if filename.lower() in mapping_filename or mapping_filename in filename.lower():
+                return adobe_id
+        
+        return None
+
     def extract_video_info(self, file_path, query_folder):
         """Extract video information from file"""
         relative_path = file_path.relative_to(query_folder)
         file_name = file_path.stem
         
-        # Generate a unique ID based on file path
-        file_id = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
+        # Load query metadata to get actual Adobe Stock IDs
+        metadata_mappings = self.load_query_metadata(query_folder)
+        
+        # Try to get Adobe Stock ID from metadata, fallback to hash ID
+        adobe_stock_id = self.get_adobe_stock_id(file_path, metadata_mappings)
+        if adobe_stock_id:
+            file_id = adobe_stock_id
+        else:
+            # Generate a unique ID based on file path as fallback
+            file_id = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
         
         # Try to get file stats
         try:
@@ -180,28 +300,37 @@ class VideoFileHandler(FileSystemEventHandler):
             modified_time = datetime.now()
         
         # Extract basic info from filename
-        title = file_name.replace('_', ' ').replace('-', ' ').title()
+        # Format title: replace all underscores with spaces
+        filename_stem = file_path.stem  # Get filename without extension
+        title = filename_stem.replace('_', ' ')
         
         # Get video information using ffprobe
         video_info = self.get_video_info(file_path)
+
         duration = video_info.get('duration', self.extract_duration_from_filename(file_name))
         resolution = video_info.get('resolution', self.extract_resolution_from_filename(file_name))
         
-        # Generate thumbnail
+        # Generate thumbnail only if it doesn't already exist
         thumbnail_filename = f"{file_id}.jpg"
         thumbnail_path = self.thumbnails_dir / thumbnail_filename
         thumbnail_url = None
         
-        if self.generate_thumbnail(file_path, thumbnail_path):
+        # Check if thumbnail already exists
+        if thumbnail_path.exists():
             thumbnail_url = f"thumbnails/{thumbnail_filename}"
-            print(f"Generated thumbnail: {thumbnail_url}")
+            # print(f"Using existing thumbnail: {thumbnail_url}")
+        else:
+            # Generate new thumbnail
+            if self.generate_thumbnail(file_path, thumbnail_path):
+                thumbnail_url = f"thumbnails/{thumbnail_filename}"
+                print(f"Generated thumbnail: {thumbnail_url}")
         
         # Generate tags from folder structure and filename
         tags = self.generate_tags(file_path, query_folder)
         
         # Create relative URL for serving through web server
         relative_video_path = file_path.relative_to(self.downloads_path.parent)
-        
+
         return {
             "id": file_id,
             "title": title,
@@ -274,32 +403,8 @@ class VideoFileHandler(FileSystemEventHandler):
 
     def generate_tags(self, file_path, query_folder):
         """Generate tags from folder structure and filename"""
-        tags = []
-        
-        # Add query folder name as primary tag
-        query_name = query_folder.name.lower()
-        tags.extend(query_name.split())
-        
-        # Add subfolder names as tags
-        relative_path = file_path.relative_to(query_folder)
-        for parent in relative_path.parents:
-            if parent != Path('.'):
-                folder_tags = parent.name.lower().split()
-                tags.extend(folder_tags)
-        
-        # Add filename-based tags
-        filename_tags = file_path.stem.lower().replace('_', ' ').replace('-', ' ').split()
-        
-        # Filter out common non-descriptive words
-        stop_words = {'video', 'clip', 'stock', 'adobe', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'entire', 'complete', 'full'}
-        
-        for tag in filename_tags:
-            if len(tag) > 2 and tag not in stop_words:
-                tags.append(tag)
-        
-        # Remove duplicates and return first 8 tags
-        unique_tags = list(dict.fromkeys(tags))[:8]
-        return [tag.capitalize() for tag in unique_tags]
+        # Return empty list - tags are removed per user request
+        return []
 
     def format_file_size(self, size_bytes):
         """Format file size in human readable format"""
