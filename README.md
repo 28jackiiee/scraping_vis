@@ -59,17 +59,15 @@ sudo apt install ffmpeg
 
 ### 3. Clone or Download the Project
 ```bash
+git clone https://github.com/28jackiiee/scraping_vis
 cd scraping_vis
 ```
 
 ### 4. Install Python Dependencies
 ```bash
+conda create -n scraping-vis python=3.10
+conda activate scraping-vis
 pip install -r requirements.txt
-```
-
-Or install manually:
-```bash
-pip install watchdog
 ```
 
 ### 5. Organize Your Video Structure (Optional)
