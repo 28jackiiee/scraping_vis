@@ -223,7 +223,7 @@ class AdobeVideoDownloader:
         """
         try:
             # Test with the actual download endpoint to see if we get an auth error
-            test_video_id = "123456789"  # This will fail, but we're checking the error type
+            test_video_id = "1557057041"  # This will fail, but we're checking the error type
             test_url = f"https://stock.adobe.com/Download/Watermarked/{test_video_id}"
             response = self.session.head(test_url, timeout=10)
             
@@ -341,7 +341,7 @@ class AdobeVideoDownloader:
         Returns:
             True if download was successful, False otherwise
         """
-        url = f"https://stock.adobe.com/Download/Watermarked/{video_id}"
+        url = f"https://stock.adobe.com/Download/Watermarked/{video_info.get('title')}"
         
         try:
             logger.info(f"Downloading video {video_id}: {video_info.get('title', 'Unknown title')[:50]}...")

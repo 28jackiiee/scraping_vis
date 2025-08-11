@@ -2605,7 +2605,7 @@ async function clearAllLabels() {
     if (currentQuery.isDatasetPool) {
         const key = `tpr_labels_${currentQuery.folder}`;
         localStorage.removeItem(key);
-        console.log('TPR labels cleared from localStorage'); await displayCurrentLabelingPage(currentQuery);
+        console.log('TPR labels cleared from localStorage');
         return;
     }
     
@@ -2626,7 +2626,7 @@ async function clearAllLabels() {
     
     // Also clear localStorage and cache
     try {
-        const key = `labels_${currentQuery.folder}`; localStorage.removeItem(key); await displayCurrentLabelingPage(currentQuery);
+        localStorage.removeItem('labeledVideos');
         labelCache = {};
         pendingLabelUpdates.clear();
         console.log('Labels cleared from localStorage and cache');

@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import concurrent.futures
 
 class VideoFileHandler(FileSystemEventHandler):
     def __init__(self, downloads_path, output_file):
@@ -146,12 +147,69 @@ class VideoFileHandler(FileSystemEventHandler):
         videos = []
         video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv'}
         
+        # Collect all video files first
+        video_files = []
         for file_path in query_folder.rglob('*'):
             if file_path.is_file() and file_path.suffix.lower() in video_extensions:
-                video_info = self.extract_video_info(file_path, query_folder)
-                videos.append(video_info)
+                video_files.append(file_path)
+        
+        # Generate thumbnails in parallel
+        self.generate_thumbnails_parallel(video_files)
+        
+        # Now extract video info (thumbnails should be ready)
+        for file_path in video_files:
+            video_info = self.extract_video_info(file_path, query_folder)
+            videos.append(video_info)
                 
         return sorted(videos, key=lambda x: x['title'])
+
+    def generate_thumbnails_parallel(self, video_files):
+        """Generate thumbnails for multiple videos in parallel"""
+        if not video_files:
+            return
+        
+        # Filter out videos that already have thumbnails
+        videos_needing_thumbnails = []
+        for file_path in video_files:
+            # Generate file ID
+            metadata_mappings = self.load_query_metadata(file_path.parent)
+            adobe_stock_id = self.get_adobe_stock_id(file_path, metadata_mappings)
+            if adobe_stock_id:
+                file_id = adobe_stock_id
+            else:
+                file_id = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
+            
+            thumbnail_filename = f"{file_id}.jpg"
+            thumbnail_path = self.thumbnails_dir / thumbnail_filename
+            
+            # Only generate if thumbnail doesn't exist
+            if not thumbnail_path.exists():
+                videos_needing_thumbnails.append((file_path, thumbnail_path))
+        
+        if not videos_needing_thumbnails:
+            return
+        
+        print(f"🖼️ Generating {len(videos_needing_thumbnails)} thumbnails in parallel...")
+        
+        # Use ThreadPoolExecutor for parallel thumbnail generation
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            # Submit thumbnail generation tasks
+            future_to_path = {}
+            for file_path, thumbnail_path in videos_needing_thumbnails:
+                future = executor.submit(self.generate_thumbnail, file_path, thumbnail_path)
+                future_to_path[future] = file_path
+            
+            # Collect results as they complete
+            for future in concurrent.futures.as_completed(future_to_path):
+                file_path = future_to_path[future]
+                try:
+                    success = future.result()
+                    if success:
+                        print(f"✅ Generated thumbnail for {file_path.name}")
+                    else:
+                        print(f"❌ Failed to generate thumbnail for {file_path.name}")
+                except Exception as e:
+                    print(f"❌ Error generating thumbnail for {file_path.name}: {e}")
 
     def generate_thumbnail(self, video_path, output_path):
         """Generate thumbnail from video using ffmpeg"""
@@ -310,20 +368,13 @@ class VideoFileHandler(FileSystemEventHandler):
         duration = video_info.get('duration', self.extract_duration_from_filename(file_name))
         resolution = video_info.get('resolution', self.extract_resolution_from_filename(file_name))
         
-        # Generate thumbnail only if it doesn't already exist
+        # Check if thumbnail exists (should have been generated in parallel)
         thumbnail_filename = f"{file_id}.jpg"
         thumbnail_path = self.thumbnails_dir / thumbnail_filename
         thumbnail_url = None
         
-        # Check if thumbnail already exists
         if thumbnail_path.exists():
             thumbnail_url = f"thumbnails/{thumbnail_filename}"
-            # print(f"Using existing thumbnail: {thumbnail_url}")
-        else:
-            # Generate new thumbnail
-            if self.generate_thumbnail(file_path, thumbnail_path):
-                thumbnail_url = f"thumbnails/{thumbnail_filename}"
-                print(f"Generated thumbnail: {thumbnail_url}")
         
         # Generate tags from folder structure and filename
         tags = self.generate_tags(file_path, query_folder)
